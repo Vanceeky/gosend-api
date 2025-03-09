@@ -1,0 +1,3 @@
+Example Use Cases
+- joinedload is great when loading User and their Profile (1-to-1).
+- selectinload is better when loading User and their Orders (1-to-many) since a JOIN would cause row duplication.
