@@ -18,10 +18,10 @@ class AccountTypeEnum(str, Enum):
 
 # Schema for Member Details
 class MemberDetailsSchema(BaseModel):
-    first_name: str
-    last_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     middle_name: Optional[str] = None
-    suffix: Optional[str] = None
+    suffix_name: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -30,11 +30,11 @@ class MemberDetailsSchema(BaseModel):
 # Schema for Member Address
 class MemberAddressSchema(BaseModel):
     house_number: Optional[str] = None
-    street_name: str
-    barangay: str
-    city: str
-    province: str
-    region: str
+    street_name: Optional[str] = None  # Make this optional
+    barangay: Optional[str] = None  # Make this optional
+    city: Optional[str] = None  # Make this optional
+    province: Optional[str] = None  # Make this optional
+    region: Optional[str] = None  # Make this optional
 
     class Config:
         orm_mode = True
@@ -48,7 +48,7 @@ class MemberCreateSchema(BaseModel):
     mobile_number: str
     #mpin: str  # Should be 4 digits (validation can be added)
     account_type: AccountTypeEnum = AccountTypeEnum.MEMBER
-    referral_id: str
+    #referral_id: str
     details: MemberDetailsSchema
     address: MemberAddressSchema
 
@@ -67,6 +67,43 @@ class MemberReadSchema(BaseModel):
     details: Optional[MemberDetailsSchema] = None
     address: Optional[MemberAddressSchema] = None
     wallet: Optional[WalletSchema] = None
+
+    class Config:
+        orm_mode = True
+
+
+
+class WalletResponse(BaseModel):
+    wallet_balance: float
+    reward_points: Optional[float] = 0.0
+
+class MemberListResponse(BaseModel):
+    user_id: str
+    mobile_number: str
+    #community_name: str
+    status: bool
+    is_activated: bool
+    is_kyc_verified: bool
+    community_name: str
+    community_id: str
+    created_at: str
+    updated_at: str
+    user_address: MemberAddressSchema
+    user_details: MemberDetailsSchema
+    wallet: WalletResponse
+
+
+
+class MemberInfoSchema(BaseModel):
+    member_id: str
+    mobile_number: str
+    referral_id: str
+    account_type: str
+    is_activated: bool
+    is_kyc_verified: bool
+    details: Optional[MemberDetailsSchema] = None
+    address: Optional[MemberAddressSchema] = None
+    wallet: Optional[WalletResponse] = None
 
     class Config:
         orm_mode = True

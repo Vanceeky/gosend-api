@@ -22,13 +22,18 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 from core.database import Base
-from models import (
-    member_models,
 
+from models import (
+    community_models,
+    member_models,
     hub_models,
     investor_models,
     admin_models,
-    wallet_models
+    wallet_models,
+    referral_models,
+    merchant_models,
+    activation_history_models,
+    reward_models
 )
 
 

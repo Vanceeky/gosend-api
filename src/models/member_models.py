@@ -10,6 +10,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from uuid import uuid4
 #from models.community_models import Community
+from models.community_models import Community
+from models.hub_models import Hub
+from models.investor_models import Investor
+from models.admin_models import AdminAccount
+from models.activation_history_models import ActivationHistory
+from models.merchant_models import MerchantPurchaseHistory
+from models.reward_models import Reward
 
 from core.database import Base
 
@@ -21,14 +28,14 @@ class Member(Base):
 
     member_id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
     mobile_number = Column(String(10), nullable=False, unique=True)
-    mpin = Column(String(4), nullable=True)
+    mpin = Column(String(255), nullable=True)
     account_type = Column(Enum("MEMBER", "MERCHANT", "INVESTOR", "LEADER", "HUB", "ADMIN", "SUPERADMIN", "CUSTOMER_SUPPORT"), nullable=False, default="MEMBER")
     referral_id = Column(String(12), unique=True, nullable=False)
     is_activated = Column(Boolean, nullable=False, default=False)
     is_kyc_verified = Column(Boolean, nullable=False, default=False)
 
     # Community Relationship
-    #community_id = Column(String(36), ForeignKey("communities.community_id", ondelete="SET NULL"), nullable=True)
+    community_id = Column(String(36), ForeignKey("communities.community_id", ondelete="SET NULL"), nullable=True)
 
 
     created_at = Column(TIMESTAMP, server_default=func.now())
@@ -39,8 +46,9 @@ class Member(Base):
     details = relationship("MemberDetails", back_populates="member", uselist=False, cascade="all, delete-orphan")
     address = relationship("MemberAddress", back_populates="member", uselist=False, cascade="all, delete-orphan")
 
-  # Relationships
-   # community = relationship("Community", back_populates="members")
+    # Relationships
+    community = relationship("Community", back_populates="members")
+
     
     # Relationship to Hub
     hub = relationship("Hub", back_populates="owner", uselist=False, cascade="all, delete-orphan")
@@ -55,11 +63,36 @@ class Member(Base):
     wallet = relationship("MemberWallet", back_populates="member", uselist=False, cascade="all, delete-orphan")
 
 
+    # Referral Relationships (Fixed)
+    referrals_made = relationship("Referral", foreign_keys="[Referral.referred_by]", back_populates="referrer", cascade="all, delete-orphan")
+    referred_by_member = relationship("Referral", foreign_keys="[Referral.referred_member]", back_populates="referred", uselist=False)
+
+    # Relationship to merchant
+    merchant = relationship("Merchant", back_populates="member", uselist=False, cascade="all, delete-orphan")
+
+    # Relationship to MerchantReferral (One-to-Many: A member can refer multiple merchants)
+    merchant_referrals_made = relationship("MerchantReferral", back_populates="referrer", cascade="all, delete-orphan")
+
+
+    # Relationship to ActivationHistory
+    activation_history = relationship("ActivationHistory", back_populates="member", uselist=False)
+
+    # Relationship to MerchantPurchaseHistory
+    purchase_history = relationship("MerchantPurchaseHistory", back_populates="member", cascade="all, delete-orphan")
+
+    # Updated: Correct relationship with MemberPurchaseHistory
+    member_purchases = relationship("MerchantPurchaseHistory", back_populates="member", cascade="all, delete-orphan")
+
+
+    # Rewards Relationships
+    rewards_given = relationship("Reward", foreign_keys="[Reward.reward_from]", back_populates="giver", cascade="all, delete-orphan")
+    rewards_received = relationship("Reward", foreign_keys="[Reward.receiver]", back_populates="recipient", cascade="all, delete-orphan")
+
 
 class MemberDetails(Base):
     __tablename__ = "member_details"
 
-    id = Column(String(18), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
     member_id = Column(String(36), ForeignKey("members.member_id"), nullable=False, unique=True)
     first_name = Column(String(155), nullable=False)
     last_name = Column(String(155), nullable=False)
@@ -76,7 +109,7 @@ class MemberDetails(Base):
 class MemberAddress(Base):
     __tablename__ = "member_address"
 
-    id = Column(String(18), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
     member_id = Column(String(36), ForeignKey("members.member_id", ondelete="CASCADE"), nullable=False, unique=True)
 
     house_number = Column(String(20), nullable=True)

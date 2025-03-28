@@ -22,7 +22,12 @@ class Hub(Base):
     hub_user = Column(String(36), ForeignKey("members.mobile_number", ondelete="CASCADE"), nullable=False, unique=True)
     reward_points = Column(Float, nullable=False, default=0)
 
-    address = Column(String(255), nullable=True)
+    region = Column(String(100), nullable=False)
+    province = Column(String(100), nullable=False)
+    municipality_city = Column(String(100), nullable=False)
+    barangay = Column(String(100), nullable=True)
+    street = Column(String(100), nullable=True)
+
 
     # Relationship: The owner of this Hub (One-to-One)
     owner = relationship("Member", back_populates="hub")

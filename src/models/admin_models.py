@@ -24,7 +24,9 @@ class AdminAccount(Base):
 
     mobile_number = Column(String(10), ForeignKey("members.mobile_number", ondelete="CASCADE"), nullable=True, unique=True)
 
-    account_type = Column(Enum('SUPERADMIN', 'ADMIN', 'CUSTOMER_SUPPORT'), nullable=False, default="CUSTOMER_SUPPORT")
+    account_type = Column(Enum('INVESTOR', 'ADMIN', 'CUSTOMER_SUPPORT'), nullable=False, default="CUSTOMER_SUPPORT")
+
+    reward_points = Column(Float, nullable=False, default=0)
 
     account_url = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid4()))
 

@@ -21,6 +21,9 @@ class Wallet(Base):
     wallet_id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid4()))
     public_address = Column(String(255), nullable=False)
 
+    wallet_balance = Column(Float, nullable=False, default=0.00)
+    reward_points = Column(Float, nullable=False, default=0.00)
+
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -33,7 +36,7 @@ class WalletExtensions(Base):
 
     wallet_extension_id = Column(String(36), primary_key=True, index=True)
     extension_name = Column(String(155), nullable=False, index=True)
-    extension_type = Column(Enum("monetary"), nullable=False)
+    extension_type = Column(Enum("monetary"), nullable=False, default="monetary")
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
