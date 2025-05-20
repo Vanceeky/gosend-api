@@ -1,7 +1,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.admin_models import AdminAccount
-from models.member_models import Member
+from models.member_models import Member, MemberDetails
 from models.merchant_models import Merchant
 from models.community_models import Community
 from api.v1.schemas.investor_schemas import InvestorDashboardResponse
@@ -9,10 +9,12 @@ from sqlalchemy.future import select
 
 from sqlalchemy import func, extract
 from api.v1.repo.member_repo import MemberRepo
+from datetime import date
 
 from models.activation_history_models import ActivationHistory
 
 from sqlalchemy.sql import case
+from sqlalchemy.orm import aliased
 
 
 class InvestorRepo:
@@ -88,6 +90,46 @@ class InvestorRepo:
             .order_by("month")
         )
 
+
+
+        today = date.today()
+
+        # Define the alias for MemberDetails
+        details_alias = aliased(MemberDetails)
+
+        today_activations_result = await db.execute(
+            select(
+                ActivationHistory.amount,
+                details_alias.first_name,
+                details_alias.middle_name,
+                details_alias.last_name,
+                details_alias.suffix_name,
+                Member.mobile_number,
+                Member.member_id
+            )
+            .join(Member, ActivationHistory.member_id == Member.member_id)
+            .join(details_alias, details_alias.member_id == Member.member_id)
+            .where(func.date(ActivationHistory.created_at) == today)
+        )
+
+        today_activations = [
+            {
+                "full_name": " ".join(
+                    filter(None, [
+                        row.first_name,
+                        row.middle_name,
+                        row.last_name,
+                        row.suffix_name
+                    ])
+                ),
+                "amount": row.amount,
+                "mobile_number": row.mobile_number,
+                "member_id": row.member_id
+            }
+            for row in today_activations_result
+        ]
+
+
         # Format monthly data for the frontend graph
         monthly_accumulated_activation = [
             (int(row.month), float(row.total_accumulated_amount)) for row in monthly_activation_data
@@ -104,7 +146,8 @@ class InvestorRepo:
             total_distributed_rewards=total_rewards,
             total_activator_earnings=total_activator_earnings,
             total_accumulated_activation_amount=total_accumulated_activation_amount,
-            monthly_accumulated_activation=monthly_accumulated_activation
+            monthly_accumulated_activation=monthly_accumulated_activation,
+            today_activations=today_activations  # ✅ Added this
         )
     
 

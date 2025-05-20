@@ -4,7 +4,7 @@ from api.v1.schemas.admin_schemas import AdminAccountCreate, AdminLoginRequest
 from utils.responses import json_response
 
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from api.v1.repo.admin_repo import AdminRepo
 from core.security import verify_password, sign_jwt
 
@@ -18,7 +18,7 @@ from sqlalchemy.future import select
 
 
 from api.v1.repo.member_repo import MemberRepo
-
+from api.v1.repo.wallet_repo import WalletRepository
 
 import logging
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class AdminService:
     
 
     @staticmethod
-    async def login_account(db: AsyncSession, account_url: str, login_data: AdminLoginRequest):
+    async def login_account(db: AsyncSession, account_url: str, login_data: AdminLoginRequest, response: Response):
         from api.v1.repo.member_repo import MemberRepo
         try:
             account = await AdminRepo.get_account_by_url(db, account_url)
@@ -59,30 +59,68 @@ class AdminService:
             member_user_id = member.member_id
 
             if not account:
-                return json_response(
-                    message="Invalid username or password",
-                    status_code=401
-                )
+                return {
+                    "message": "Invalid login url",
+                    "status_code": 401
+                }
 
             if account.username != login_data.username:
-                return json_response(
-                    message="Invalid username or password",
-                    status_code=401
-                )
-            
+                return {
+                    "message": "Invalid username or password",
+                    "status_code": 401
+                }
+
             if not verify_password(login_data.password, account.password):
-                return json_response(
-                    message="Invalid username or password",
-                    status_code=401
-                )
+                return {
+                    "message": "Invalid username or password",
+                    "status_code": 401
+                }
 
             access_token = sign_jwt(account.id, account.account_type, member_user_id)["access_token"]
-                    
-            return {"message": "Login successful", "access_token": access_token, "account_type": account.account_type, "member_user_id": member_user_id}
 
-        
+            # Set the access_token in cookies
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                httponly=False,  # Set to True for better security (HttpOnly)
+                secure=False,    # Set to True in production for HTTPS
+                samesite="Lax", # Necessary for cross-origin requests (HTTPS required)
+                max_age=86400,  # Cookie will expire in 1 day
+                path="/"        # Make the cookie available on the entire site
+            )
+
+            response.set_cookie(
+                key ="account_type",
+                value = account.account_type,
+                httponly=False,  # Set to True for better security (HttpOnly)
+                secure=False,    # Set to True in production for HTTPS
+                samesite="Lax", # Necessary for cross-origin requests (HTTPS required)
+                max_age=86400,  # Cookie will expire in 1 day
+                path="/"        # Make the cookie available on the entire site
+            )
+
+            response.set_cookie(
+                key ="member_user_id",
+                value = member_user_id,
+                httponly=False,  # Set to True for better security (HttpOnly)
+                secure=False,    # Set to True in production for HTTPS
+                samesite="Lax", # Necessary for cross-origin requests (HTTPS required)
+                max_age=86400,  # Cookie will expire in 1 day
+                path="/"        # Make the cookie available on the entire site
+            )
+
+            return {
+                "message": "Login Successful",
+                "data": {"access_token": access_token, "account_type": account.account_type, "member_user_id": member_user_id},
+                "status_code": 200
+            }
+
         except Exception as e:
             logger.error("Error during login: %s", str(e))
+            return {
+                "message": f"Error during login: {str(e)}",
+                "status_code": 500
+            }
 
 
 
@@ -156,11 +194,8 @@ class AdminService:
                     new_total_points = current_points + reward_points
 
                     # Update the upline's wallet reward points
-                    await db.execute(
-                        Wallet.__table__.update()
-                        .where(Wallet.wallet_id == select(MemberWallet.wallet_id).where(MemberWallet.member_id == upline_id).scalar_subquery())
-                        .values(reward_points=new_total_points)
-                    )
+                    await WalletRepository.update_wallet_points(db, upline_id, new_total_points)
+
 
                     # Add reward entry
                     reward_entries.append(Reward(
@@ -185,13 +220,8 @@ class AdminService:
             activator_new_total = activator_current_points + activator_reward_points
 
             # Update the activator's wallet reward points
-            await db.execute(
-                Wallet.__table__.update()
-                .where(Wallet.wallet_id == select(MemberWallet.wallet_id)
-                    .where(MemberWallet.member_id == activated_by)
-                    .scalar_subquery())
-                .values(reward_points=activator_new_total)
-            )
+            await WalletRepository.update_wallet_points(db, activated_by, activator_new_total)
+
 
             # Create activator reward entry
             activator_reward = Reward(

@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from models.member_models import Member
 from models.merchant_models import Merchant
 from models.community_models import Community
+from models.hub_models import Hub
+
 from utils.otp import generate_otp, create_otp_token, send_otp, verify_otp_token
 from sqlalchemy.future import select
 import logging
@@ -25,6 +27,8 @@ class AuthRepo:
                 stmt = select(Merchant).filter_by(mobile_number=mobile_number)
             elif role == "LEADER":
                 stmt = select(Community).filter_by(community_leader=mobile_number)
+            elif role == "HUB":
+                stmt = select(Hub).filter_by(hub_user=mobile_number)
             else:
                 raise HTTPException(status_code=400, detail="Invalid role selected.")
 
@@ -101,6 +105,10 @@ class AuthRepo:
             elif role == "LEADER":
                 stmt = select(Community).filter_by(community_leader=mobile_number)
                 user_id_field = "community_id"
+
+            elif role == "HUB":
+                stmt = select(Hub).filter_by(hub_user=mobile_number)
+                user_id_field = "id"
             else:
                 raise HTTPException(status_code=400, detail="Invalid role. Please select MEMBER or MERCHANT.")
 
@@ -111,7 +119,7 @@ class AuthRepo:
                 raise HTTPException(status_code=404, detail=f"{role.capitalize()} not found.")
 
             # Special check for MERCHANT role to validate against MEMBER MPIN
-            if role == "MERCHANT" or role == "LEADER" or role == "MEMBER":
+            if role == "MERCHANT" or role == "LEADER" or role == "MEMBER" or role == "HUB":
                 member_stmt = select(Member).filter_by(mobile_number=mobile_number)
                 member_result = await db.execute(member_stmt)
                 member_account = member_result.scalar_one_or_none()

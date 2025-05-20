@@ -7,8 +7,12 @@ from fastapi import status
 from typing import List
 
 from core.security import JWTBearer, require_role
+from utils.responses import json_response
+
 
 from fastapi import Response
+
+
 router = APIRouter()
 
 
@@ -22,41 +26,17 @@ async def create_account(
 
 @router.post('/{account_url}/login', status_code=status.HTTP_200_OK)
 async def login_account(account_url: str, login_data: AdminLoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
-    result = await AdminService.login_account(db, account_url, login_data)
-    response.set_cookie(
-        key = "access_token",
-        value=result["access_token"],
-        httponly=False,  
-        secure=False,  
-        samesite="Lax",  
-        max_age=86400,  
-        path="/",  
-    )
-
-    response.set_cookie(
-        key = "account_type",
-        value=result['account_type'],
-        httponly=False,  
-        secure=False,  
-        samesite="Lax",  
-        max_age=86400,  
-        path="/",  
-    )
-
-    response.set_cookie(
-        key = "member_user_id",
-        value=result['member_user_id'],
-        httponly=False,  
-        secure=False,  
-        samesite="Lax",  
-        max_age=86400,  
-        path="/",  
-    )
-
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    result = await AdminService.login_account(db, account_url, login_data, response)
     
-    return result
+    return {
+        "message": result.get("message"),
+        "data": result.get("data"),
+        "status_code": result.get("status_code")
+    }
+
+
+
+
 
 
 @router.get("/all", response_model=List[AdminAccountResponse])

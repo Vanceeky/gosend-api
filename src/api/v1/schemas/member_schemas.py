@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
+from datetime import datetime
 
 from api.v1.schemas.wallet_schemas import WalletSchema
 
@@ -107,3 +108,16 @@ class MemberInfoSchema(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+
+class PurchaseHistorySchema(BaseModel):
+    purchase_id: str
+    business_name: str
+    amount: float
+    reference_id: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

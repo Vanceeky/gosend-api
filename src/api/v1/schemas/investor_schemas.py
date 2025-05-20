@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Tuple, Literal
+from typing import List, Tuple, Literal, Dict
 
 class InvestorDashboardResponse(BaseModel):
     reward_points: float
@@ -13,3 +13,4 @@ class InvestorDashboardResponse(BaseModel):
     total_activator_earnings: float
     total_accumulated_activation_amount: float
     monthly_accumulated_activation: List[Tuple[int, float]]  # (month, total accumulated activation amount)
+    today_activations: List[Dict[str, str | int]]  # ✅ (full_name, amount)

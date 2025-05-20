@@ -109,7 +109,7 @@ class MerchantPurchaseHistory(Base):
     description = Column(String(255), nullable=True)
 
 
-    status = Column(Enum('pending', 'completed', 'failed', 'refunded'), nullable=False, server_default='pending', default='pending')
+    status = Column(Enum('pending', 'success', 'failed', 'refunded'), nullable=False, server_default='pending', default='pending')
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

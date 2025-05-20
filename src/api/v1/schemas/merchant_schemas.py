@@ -41,9 +41,27 @@ class MerchantPurchaseHistorySchema(BaseModel):
     class Config:
         from_attributes = True
 
+class MerchantPurchaseCreate(BaseModel):
+    merchant_id: str
+    member_id: str
+    amount: float
+    reference_id: str
+    status: str
+    description: str
+
 
 class MerchantPurchaseHistoryListResponse(BaseModel):
     purchases: List[MerchantPurchaseHistorySchema]
+
+
+class PayQR(BaseModel):
+    amount: str
+
+class ProcessPay(BaseModel):
+    Transaction_id: str
+    otp: str
+    amount: float
+
 
 
 

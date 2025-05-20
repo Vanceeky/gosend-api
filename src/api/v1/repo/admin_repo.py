@@ -115,7 +115,7 @@ class AdminRepo:
 
         admin_account = result.scalar()
         if not admin_account:
-            raise HTTPException(status_code=404, detail="Account not found")
+            raise HTTPException(status_code=404, detail="Invalid Login URL")
 
         return admin_account
     

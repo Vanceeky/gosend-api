@@ -9,11 +9,13 @@ from api.v1.routes import community_routes as community
 from api.v1.routes import hub_routes as hub
 from api.v1.routes import investor_routes as investor
 from api.v1.routes import reward_routes as rewards
+from api.v1.routes import topwallet_routes as topwallet
 
 
 router = APIRouter()
 
 
+router.include_router(topwallet.router, prefix="/topwallet", tags=["topwallet"])
 router.include_router(admin.router, prefix="/admin", tags=["admin"])
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
 router.include_router(members.router, prefix="/member", tags=["members"])

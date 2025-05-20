@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.merchant_models import Merchant, MerchantDetails, MerchantReferral, MerchantPurchaseHistory
-from api.v1.schemas.merchant_schemas import MerchantCreate
+from api.v1.schemas.merchant_schemas import MerchantCreate, MerchantPurchaseCreate
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.future import select
@@ -12,6 +12,7 @@ from models.member_models import Member, MemberDetails
 from fastapi import HTTPException
 
 from models.member_models import Member
+from models.referral_models import Referral
 
 
 import logging
@@ -333,4 +334,59 @@ class MerchantRepo:
             raise HTTPException(status_code=500, detail=f"Error retrieving merchant purchase history: {str(e)}")
 
         
+
+
+    @staticmethod
+    async def create_purchase(db: AsyncSession, purchase_data: MerchantPurchaseCreate):
+        new_purchase = MerchantPurchaseHistory(
+            purchase_id=str(uuid4()),
+            merchant_id=purchase_data.merchant_id,
+            member_id=purchase_data.member_id,
+            amount=purchase_data.amount,
+            reference_id=purchase_data.reference_id,
+            description=purchase_data.description,
+            status=purchase_data.status
+        )
+        db.add(new_purchase)
+        await db.commit()
+        await db.refresh(new_purchase)
+        return new_purchase
+
+    @staticmethod
+    async def get_purchase_by_id(db: AsyncSession, purchase_id: str):
+        result = await db.execute(select(MerchantPurchaseHistory).filter_by(purchase_id=purchase_id))
+        return result.scalars().first()
+    
+
+
+
+    async def get_merchant_referrer_member_id(db: AsyncSession, merchant_id: str) -> str | None:
+        """
+        Get the member_id of the referrer of a given merchant.
+        Looks at MerchantReferral.referred_by → Member.referral_id.
+        """
+        result = await db.execute(
+            select(Member.member_id)
+            .join(MerchantReferral, Member.referral_id == MerchantReferral.referred_by)
+            .where(MerchantReferral.referred_merchant == merchant_id)
+        )
+        return result.scalar()
+
+
+
+
+    async def get_direct_referrer_member_id_of_merchant(db: AsyncSession, merchant_id: str) -> str | None:
+        """
+        Given a merchant_id, return the member_id of the person who referred that merchant (as a member).
+        """
+        result = await db.execute(
+            select(Referral.referred_by)
+            .where(
+                Referral.referred_member == select(Member.member_id)
+                .join(Merchant, Merchant.mobile_number == Member.mobile_number)
+                .where(Merchant.merchant_id == merchant_id)
+                .scalar_subquery()
+            )
+        )
+        return result.scalar()
 

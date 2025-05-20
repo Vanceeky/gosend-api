@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 
-from api.v1.schemas.member_schemas import MemberCreateSchema, MemberReadSchema, MemberListResponse, MemberInfoSchema
+from api.v1.schemas.member_schemas import MemberCreateSchema, MemberReadSchema, MemberListResponse, MemberInfoSchema, PurchaseHistorySchema
 from api.v1.schemas.reward_schemas import RewardListSchema
 from api.v1.services.member_services import MemberService
 from api.v1.repo.member_repo import MemberRepo
@@ -70,3 +70,34 @@ async def get_member_rewards(db: AsyncSession = Depends(get_db), token: dict = D
         return await RewardService.get_member_rewards(db, member_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/rewards/{member_id}", response_model=RewardListSchema, summary="Get member rewards", dependencies=[Depends(require_role("ADMIN", "MEMBER", "INVESTOR"))])
+async def get_member_rewards(member_id: str, db: AsyncSession = Depends(get_db)):
+    try:
+
+        return await RewardService.get_member_rewards(db, member_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/merchant-purchase/history", response_model=List[PurchaseHistorySchema], dependencies=[Depends(require_role("MEMBER", "ADMIN", "INVESTOR"))])
+async def get_member_purchase_history(
+    db: AsyncSession = Depends(get_db),
+    token: dict = Depends(JWTBearer())
+):
+    member_id = token.get('user_id')
+    purchases = await MemberService.get_member_purchase_history(db, member_id)
+    if not purchases:
+        raise HTTPException(status_code=404, detail="No purchase history found for this member.")
+    return purchases
+
+@router.get("/merchant-purchase/history/{member_id}", response_model=List[PurchaseHistorySchema], dependencies=[Depends(require_role("MEMBER", "ADMIN", "INVESTOR"))])
+async def get_member_purchase_history(
+    member_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    purchases = await MemberService.get_member_purchase_history(db, member_id)
+    if not purchases:
+        raise HTTPException(status_code=404, detail="No purchase history found for this member.")
+    return purchases
+
+

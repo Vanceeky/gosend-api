@@ -28,7 +28,7 @@ class ActivationHistory(Base):
     status = Column(String(50), nullable=False)
 
 
-    activated_by_role = Column(Enum('LEADER', 'CUSTOMER SUPPORT', 'MEMBER'), default="CUSTOMER SUPPORT", nullable=True)
+    activated_by_role = Column(Enum('LEADER', 'CUSTOMER SUPPORT', 'MEMBER', "SELF-ACTIVATION"), default="CUSTOMER SUPPORT", nullable=True)
     # topwallet reference id 
     reference_id = Column(String(120), nullable=False)
     extra_metadata = Column(String(255), nullable=True)
@@ -40,3 +40,5 @@ class ActivationHistory(Base):
 
     # Relationship with Member
     member = relationship("Member", back_populates="activation_history")
+
+    

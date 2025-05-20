@@ -4,7 +4,7 @@ from uuid import uuid4
 from sqlalchemy import select
 
 from typing import Optional
-from api.v1.schemas.member_schemas import MemberCreateSchema, MemberAddressSchema, MemberDetailsSchema, MemberListResponse, WalletResponse, MemberReadSchema, MemberInfoSchema
+from api.v1.schemas.member_schemas import MemberCreateSchema, MemberAddressSchema, MemberDetailsSchema, MemberListResponse, WalletResponse, MemberReadSchema, MemberInfoSchema, PurchaseHistorySchema
 
 from api.v1.repo.member_repo import MemberRepo
 from utils.responses import json_response
@@ -200,4 +200,18 @@ class MemberService:
     
 
 
+    @staticmethod
+    async def get_member_purchase_history(db: AsyncSession, member_id: str):
+        """
+        Retrieve and format the purchase history for a given member.
+        """
+        purchases = await MemberRepo.get_member_purchase_history(db, member_id)
 
+        return [PurchaseHistorySchema(
+            purchase_id=p.purchase_id,
+            business_name=p.business_name,
+            amount=p.amount,
+            reference_id = p.reference_id,
+            status=p.status,
+            created_at=p.created_at
+        ) for p in purchases]

@@ -6,6 +6,7 @@ from models.member_models import Member, MemberDetails, MemberAddress, MemberWal
 from models.wallet_models import Wallet
 from models.referral_models import Referral
 from models.community_models import Community
+from models.merchant_models import Merchant, MerchantDetails, MerchantPurchaseHistory
 
 from api.v1.schemas.member_schemas import MemberCreateSchema
 from sqlalchemy.sql import text
@@ -18,6 +19,8 @@ from utils.responses import json_response
 
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
+
+
 
 from core.security import hash_password
 
@@ -477,4 +480,27 @@ class MemberRepo:
 
 
 
-    
+    @staticmethod
+    async def get_member_purchase_history(db: AsyncSession, member_id: str):
+        """
+        Fetch all purchase history records for a specific member.
+        
+        :param session: AsyncSession - Database session
+        :param member_id: str - ID of the member
+        :return: List of purchase history records with merchant business name, amount, status, and created_at
+        """
+        query = (
+            select(
+                MerchantPurchaseHistory.purchase_id,
+                Merchant.business_name,
+                MerchantPurchaseHistory.amount,
+                MerchantPurchaseHistory.reference_id,
+                MerchantPurchaseHistory.status,
+                MerchantPurchaseHistory.created_at
+            )
+            .join(Merchant, Merchant.merchant_id == MerchantPurchaseHistory.merchant_id)
+            .filter(MerchantPurchaseHistory.member_id == member_id)
+            .order_by(MerchantPurchaseHistory.created_at.desc())
+        )
+        result = await db.execute(query)
+        return result.all()

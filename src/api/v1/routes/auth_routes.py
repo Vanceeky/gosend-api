@@ -46,31 +46,6 @@ async def verify_mpin(
         max_age=86400,  
         path="/",  
     )
-
-    # Save the account type in cookies
-    response.set_cookie(
-        key="account_type",
-        value=role,  
-        httponly=False,  # Optional: Set to False if frontend needs access
-        secure=False,  
-        samesite="Lax",  
-        max_age=86400,  
-        path="/",  
-    )
-
-    # Save the account type in cookies
-    response.set_cookie(
-        key="member_user_id",
-        value=result["member_user_id"],  
-        httponly=False,  # Optional: Set to False if frontend needs access
-        secure=False,  
-        samesite="Lax",  
-        max_age=86400,  
-        path="/",  
-    )
-
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
     
     return {
         "access_token": result["access_token"]["access_token"],

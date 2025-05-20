@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.responses import json_response
 from api.v1.schemas.admin_schemas import ProcessActivation
+from api.v1.schemas.topwallet_schemas import P2PTransferRequest, P2PprocessRequest, TWP2PTransferRequest
+
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -142,6 +145,34 @@ class TopWallet:
         return response_data
 
 
+
+    @staticmethod
+    async def initiate_p2p_transfer(request: P2PTransferRequest) -> dict:
+        """
+        Initiates a peer-to-peer (P2P) transfer using the TopWallet API.
+
+        :param request: P2PTransferRequest schema containing transfer details
+        :return: Parsed JSON response from TopWallet API
+        :raises HTTPException: if the API call fails or returns a non-200 status code.
+        """
+        payload = request.model_dump()
+        
+        return await TopWallet.call_topwallet_api("b2bapi/initiate_p2ptransfer", payload, "POST")
+
+    @staticmethod
+    async def process_p2p_transfer(request: P2PprocessRequest) -> dict:
+        """
+        Process a peer-to-peer (P2P) transfer using the TopWallet API.
+
+        :param request: P2PTransferRequest schema containing transfer details
+        :return: Parsed JSON response from TopWallet API
+        :raises HTTPException: if the API call fails or returns a non-200 status code.
+        """
+        payload = request.model_dump()
+        
+        return await TopWallet.call_topwallet_api("b2bapi/process_p2ptransfer", payload, "POST")
+
+
     @staticmethod
     async def get_user_balance(db: AsyncSession, member_id: str):
         from api.v1.repo.member_repo import MemberRepo
@@ -171,7 +202,9 @@ class TopWallet:
         try:
             external_id = await MemberRepo.get_external_id(db, activated_by)
             print("test_external_id", external_id)
-            wallet_balance = await TopWallet.get_user_balance(db, activated_by)
+            wallet = await TopWallet.get_balance_by_userid(db, activated_by)
+            wallet_balance = wallet['peso']
+            print("Wallet chuchu", wallet_balance)
 
             activation_amount = 10
 
@@ -231,3 +264,77 @@ class TopWallet:
         except Exception as e:
             logger.error("Unexpected error while processing member activation", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+
+
+    @staticmethod
+    async def get_banks_list():
+        payload = {}
+        return await TopWallet.call_topwallet_api("b2bapi/get_banks_list", payload, "POST")
+
+    @staticmethod
+    async def cashin_bank_by_id(user_id: str):
+        payload = {
+            "userid": user_id
+        }
+        return await TopWallet.call_topwallet_api("b2bapi/cashin_bank_by_id", payload, "POST")
+
+    @staticmethod
+    async def get_profile(user_id: str):
+        payload = {
+            "userid": user_id
+        }
+        return await TopWallet.call_topwallet_api("b2bapi/get_profile", payload, "POST")
+
+    @staticmethod
+    async def generate_qr(user_id: str):
+        payload = {
+            "userid": user_id
+        }
+
+        return await TopWallet.call_topwallet_api('b2bapi/generate_qr', payload, "POST")
+    
+    @staticmethod
+    async def get_balance_by_userid(db: AsyncSession, member_id: str):
+        from api.v1.repo.member_repo import MemberRepo
+
+        try:
+            external_id = await MemberRepo.get_external_id(db, member_id)
+
+            payload = {
+                "userid": external_id
+            }
+
+            return await TopWallet.call_topwallet_api('b2bapi/get_balance_by_userid', payload, "POST")
+
+        except Exception as e:
+            raise e
+        
+
+
+    @staticmethod
+    async def p2p_transfer(db: AsyncSession, data: TWP2PTransferRequest,member_id: str):
+        from api.v1.repo.member_repo import MemberRepo
+
+        member_external_id = await MemberRepo.get_external_id(db, member_id)
+        to_user = await MemberRepo.get_member_by_mobile_number(db, data.to_user)
+
+        if not to_user:
+            raise ValueError("Recipient not found.")
+
+        to_user_external_id = await MemberRepo.get_external_id(db, to_user.member_id)
+
+        payload = {
+            "from_user": member_external_id,
+            "to_user": to_user_external_id,
+            "amount": str(data.amount),
+            "coin": data.coin
+        }
+
+        return await TopWallet.call_topwallet_api("b2bapi/initiate_p2ptransfer", payload, "POST")
+    
+
+    @staticmethod
+    async def process_transfer_p2p(data: P2PprocessRequest):
+        return await TopWallet.process_p2p_transfer(data)
